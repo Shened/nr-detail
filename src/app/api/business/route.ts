@@ -44,3 +44,33 @@ export async function POST(req: Request) {
 
     return NextResponse.json(business)
 }
+
+export async function PUT(req: Request) {
+    const session = await auth()
+    if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+    }
+
+    const body = await req.json()
+    const parsed = z.object({
+        name: z.string().min(2),
+        slug: z.string().min(2).regex(/^[a-z0-9-]+$/),
+        description: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().email().optional().or(z.literal('')),
+    }).safeParse(body)
+
+    if (!parsed.success) {
+        return NextResponse.json(
+            { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' },
+            { status: 400 }
+        )
+    }
+
+    const business = await prisma.business.update({
+        where: { ownerId: session.user.id },
+        data: parsed.data,
+    })
+
+    return NextResponse.json(business)
+}

@@ -2,19 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card'
+import { signIn } from 'next-auth/react'
 
 export default function LoginPage() {
     const router = useRouter()
@@ -45,51 +34,64 @@ export default function LoginPage() {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Entrar</CardTitle>
-                <CardDescription>
-                    Acede ao painel do teu negócio
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <div className="w-full">
+            <div className="mb-8 text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary mb-4">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="9" /><path d="M5 12h14M12 5l4 7-4 7-4-7z" />
+                    </svg>
+                </div>
+                <h1 className="text-2xl font-semibold tracking-tight">Bem-vindo de volta</h1>
+                <p className="text-sm text-muted-foreground mt-1">Entra na tua conta para continuar</p>
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
+                    <div className="space-y-1.5">
+                        <label htmlFor="email" className="text-sm font-medium">Email</label>
+                        <input
                             id="email"
                             name="email"
                             type="email"
                             placeholder="email@exemplo.com"
                             required
+                            className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm outline-none focus:ring-2 focus:ring-ring transition"
                         />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Input
+                    <div className="space-y-1.5">
+                        <label htmlFor="password" className="text-sm font-medium">Password</label>
+                        <input
                             id="password"
                             name="password"
                             type="password"
                             placeholder="A tua password"
                             required
+                            className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm outline-none focus:ring-2 focus:ring-ring transition"
                         />
                     </div>
+
                     {error && (
-                        <p className="text-sm text-red-500">{error}</p>
+                        <div className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">
+                            {error}
+                        </div>
                     )}
-                    <Button type="submit" className="w-full" disabled={loading}>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full h-10 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
+                    >
                         {loading ? 'A entrar...' : 'Entrar'}
-                    </Button>
+                    </button>
                 </form>
-            </CardContent>
-            <CardFooter className="justify-center">
-                <p className="text-sm text-muted-foreground">
-                    Não tens conta?{' '}
-                    <Link href="/register" className="text-primary hover:underline">
-                        Criar conta
-                    </Link>
-                </p>
-            </CardFooter>
-        </Card>
+            </div>
+
+            <p className="text-center text-sm text-muted-foreground mt-6">
+                Não tens conta?{' '}
+                <Link href="/register" className="text-foreground font-medium hover:underline underline-offset-4">
+                    Criar conta
+                </Link>
+            </p>
+        </div>
     )
 }
