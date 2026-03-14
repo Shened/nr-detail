@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Negócio ───────────────────────────────────────────────────────────────
+
+model Business {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  phone       String?
+  email       String?
+  address     String?
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id])
+  ownerId String @unique
+
+  services  Service[]
+  bookings  Booking[]
+  schedules Schedule[]
+}
+
+// ─── Utilizador (dono do negócio) ──────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  createdAt     DateTime  @default(now())
+
+  business Business?
+  accounts Account[]
+  sessions Session[]
+}
+
+// ─── Auth.js (NextAuth) ────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Serviços ──────────────────────────────────────────────────────────────
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  duration    Int // em minutos
+  price       Float
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String
+
+  bookings Booking[]
+}
+
+// ─── Horários de funcionamento ─────────────────────────────────────────────
+
+model Schedule {
+  id        String  @id @default(cuid())
+  dayOfWeek Int // 0 = Domingo, 6 = Sábado
+  startTime String // "09:00"
+  endTime   String // "18:00"
+  isOpen    Boolean @default(true)
+
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String
+
+  @@unique([businessId, dayOfWeek])
+}
+
+// ─── Marcações ─────────────────────────────────────────────────────────────
+
+model Booking {
+  id        String        @id @default(cuid())
+  date      DateTime
+  startTime String // "10:00"
+  endTime   String // "11:00"
+  status    BookingStatus @default(PENDING)
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String
+
+  service   Service @relation(fields: [serviceId], references: [id])
+  serviceId String
+
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// ─── Clientes ──────────────────────────────────────────────────────────────
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String
+  createdAt DateTime @default(now())
+
+  bookings Booking[]
+}
