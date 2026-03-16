@@ -17,15 +17,23 @@ model Business {
   email       String?
   address     String?
   logoUrl     String?
+  coverUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   owner   User   @relation(fields: [ownerId], references: [id])
   ownerId String @unique
 
-  services  Service[]
-  bookings  Booking[]
-  schedules Schedule[]
+  lunchBreak   Boolean       @default(false)
+  lunchStart   String? // "12:00"
+  lunchEnd     String? // "13:00"
+  
+  services     Service[]
+  bookings     Booking[]
+  schedules    Schedule[]
+  blockedSlots BlockedSlot[]
+
+  bookingView BookingView @default(SLOTS)
 }
 
 // ─── Utilizador (dono do negócio) ──────────────────────────────────────────
@@ -153,4 +161,21 @@ model Customer {
   createdAt DateTime @default(now())
 
   bookings Booking[]
+}
+
+model BlockedSlot {
+  id        String   @id @default(cuid())
+  date      DateTime
+  startTime String
+  endTime   String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String
+}
+
+enum BookingView {
+  SLOTS
+  TIMELINE
 }

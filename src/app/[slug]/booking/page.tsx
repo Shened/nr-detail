@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import BookingForm from '@/components/booking/BookingForms'
+import TimelineBookingForm from '@/components/booking/TimelineBookingForm'
 import { ArrowLeft } from 'lucide-react'
 
 export default async function BookingPage({
@@ -36,7 +37,11 @@ export default async function BookingPage({
                     <p className="text-sm text-muted-foreground mt-1">{business.name}</p>
                 </div>
 
-                <BookingForm business={business} services={business.services} />
+                {business.bookingView === 'TIMELINE' ? (
+                    <TimelineBookingForm business={business} services={business.services} />
+                ) : (
+                    <BookingForm business={business} services={business.services} />
+                )}
             </div>
         </div>
     )

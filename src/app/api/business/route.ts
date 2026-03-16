@@ -7,6 +7,7 @@ const schema = z.object({
     name: z.string().min(2),
     slug: z.string().min(2).regex(/^[a-z0-9-]+$/, 'Apenas letras minúsculas, números e hífens'),
     phone: z.string().optional(),
+    bookingView: z.enum(['SLOTS', 'TIMELINE']).default('SLOTS'),
 })
 
 export async function POST(req: Request) {
@@ -55,9 +56,13 @@ export async function PUT(req: Request) {
     const parsed = z.object({
         name: z.string().min(2),
         slug: z.string().min(2).regex(/^[a-z0-9-]+$/),
-        description: z.string().optional(),
-        phone: z.string().optional(),
-        email: z.string().email().optional().or(z.literal('')),
+        description: z.string().nullable().optional(),
+        phone: z.string().nullable().optional(),
+        email: z.string().nullable().optional(),
+        address: z.string().nullable().optional(),
+        logoUrl: z.string().nullable().optional(),
+        coverUrl: z.string().nullable().optional(),
+        bookingView: z.enum(['SLOTS', 'TIMELINE']).optional(),
     }).safeParse(body)
 
     if (!parsed.success) {

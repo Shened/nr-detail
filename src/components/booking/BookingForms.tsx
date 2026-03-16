@@ -22,11 +22,6 @@ interface Props {
     services: Service[]
 }
 
-const SLOTS = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', 
-    '14:00','14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'
-]
-
 const MONTHS = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
@@ -39,7 +34,9 @@ export default function BookingForm({ business, services }: Props) {
     const [selectedService, setSelectedService] = useState<Service | null>(null)
     const [selectedDate, setSelectedDate] = useState<Date | null>(null)
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+    const [availableSlots, setAvailableSlots] = useState<string[]>([])
     const [takenSlots, setTakenSlots] = useState<string[]>([])
+    const [loadingSlots, setLoadingSlots] = useState(false)
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -50,18 +47,36 @@ export default function BookingForm({ business, services }: Props) {
 
     const [form, setForm] = useState({ name: '', phone: '', email: '', notes: '' })
 
-    async function loadTakenSlots(date: Date) {
+    async function loadSlots(date: Date, service: Service) {
+        setLoadingSlots(true)
+        setAvailableSlots([])
+        setTakenSlots([])
+
         const res = await fetch(
-            `/api/bookings/availability?businessId=${business.id}&date=${date.toISOString().split('T')[0]}`
+            `/api/bookings/availability?businessId=${business.id}&date=${date.toISOString().split('T')[0]}&duration=${service.duration}`
         )
         const data = await res.json()
+        console.log('Response:', data)
+        setAvailableSlots(data.slots ?? [])
         setTakenSlots(data.takenSlots ?? [])
+        setLoadingSlots(false)
     }
 
-    async function selectDate(date: Date) {
+    function handleServiceSelect(service: Service) {
+        setSelectedService(service)
+        setSelectedSlot(null)
+        setAvailableSlots([])
+        if (selectedDate) {
+            loadSlots(selectedDate, service)
+        }
+    }
+
+    async function handleDateSelect(date: Date) {
         setSelectedDate(date)
         setSelectedSlot(null)
-        await loadTakenSlots(date)
+        if (selectedService) {
+            await loadSlots(date, selectedService)
+        }
     }
 
     async function handleSubmit(e: React.FormEvent) {
@@ -126,13 +141,19 @@ export default function BookingForm({ business, services }: Props) {
                             setSelectedService(null)
                             setSelectedDate(null)
                             setSelectedSlot(null)
+                            setAvailableSlots([])
+                            setTakenSlots([])
                             setForm({ name: '', phone: '', email: '', notes: '' })
                             setSuccess(false)
                         }}
-                        className="h-10 px-6 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition" >
+                        className="h-10 px-6 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition"
+                    >
                         Nova marcação
                     </button>
-                    <a href="/" className="h-10 px-6 border border-border rounded-lg text-sm font-medium hover:bg-muted transition flex items-center justify-center" >
+                    <a
+                        href="/"
+                        className="h-10 px-6 border border-border rounded-lg text-sm font-medium hover:bg-muted transition flex items-center justify-center"
+                    >
                         Voltar ao início
                     </a>
                 </div>
@@ -165,7 +186,7 @@ export default function BookingForm({ business, services }: Props) {
                     {services.map((service) => (
                         <button
                             key={service.id}
-                            onClick={() => setSelectedService(service)}
+                            onClick={() => handleServiceSelect(service)}
                             className={`w-full text-left p-4 rounded-xl border transition ${selectedService?.id === service.id
                                 ? 'border-primary bg-primary/5'
                                 : 'border-border bg-card hover:border-primary/50'
@@ -246,7 +267,7 @@ export default function BookingForm({ business, services }: Props) {
                                     <button
                                         key={day}
                                         disabled={isPast || isWeekend}
-                                        onClick={() => selectDate(date)}
+                                        onClick={() => handleDateSelect(date)}
                                         className={`h-9 rounded-lg text-sm transition ${isSelected ? 'bg-primary text-primary-foreground font-medium' :
                                             isPast || isWeekend ? 'text-muted-foreground/40 cursor-not-allowed' :
                                                 'hover:bg-muted text-foreground'
@@ -262,24 +283,30 @@ export default function BookingForm({ business, services }: Props) {
                     {selectedDate && (
                         <div>
                             <p className="text-sm font-medium mb-3">Horários disponíveis</p>
-                            <div className="grid grid-cols-3 gap-2">
-                                {SLOTS.map((slot) => {
-                                    const taken = takenSlots.includes(slot)
-                                    return (
-                                        <button
-                                            key={slot}
-                                            disabled={taken}
-                                            onClick={() => setSelectedSlot(slot)}
-                                            className={`h-10 rounded-lg text-sm transition border ${selectedSlot === slot ? 'bg-primary text-primary-foreground border-primary font-medium' :
-                                                taken ? 'border-border text-muted-foreground/40 cursor-not-allowed line-through' :
-                                                    'border-border hover:border-primary/50 hover:bg-muted'
-                                                }`}
-                                        >
-                                            {slot}
-                                        </button>
-                                    )
-                                })}
-                            </div>
+                            {loadingSlots ? (
+                                <p className="text-sm text-muted-foreground">A carregar horários...</p>
+                            ) : availableSlots.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">Nenhum horário disponível para este dia.</p>
+                            ) : (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {availableSlots.map((slot) => {
+                                        const taken = takenSlots.includes(slot)
+                                        return (
+                                            <button
+                                                key={slot}
+                                                disabled={taken}
+                                                onClick={() => setSelectedSlot(slot)}
+                                                className={`h-10 rounded-lg text-sm transition border ${selectedSlot === slot ? 'bg-primary text-primary-foreground border-primary font-medium' :
+                                                    taken ? 'border-border text-muted-foreground/40 cursor-not-allowed line-through' :
+                                                        'border-border hover:border-primary/50 hover:bg-muted'
+                                                    }`}
+                                            >
+                                                {slot}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -310,7 +337,9 @@ export default function BookingForm({ business, services }: Props) {
                         <p className="text-xs text-muted-foreground">
                             {selectedDate?.toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long' })} · {selectedSlot}
                         </p>
-                        <p className="text-xs text-muted-foreground">{selectedService?.price.toFixed(2)}€ · {selectedService?.duration} min</p>
+                        <p className="text-xs text-muted-foreground">
+                            {selectedService?.price.toFixed(2)}€ · {selectedService?.duration} min
+                        </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-3">
@@ -337,7 +366,9 @@ export default function BookingForm({ business, services }: Props) {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Email <span className="text-muted-foreground font-normal">(opcional)</span></label>
+                            <label className="text-sm font-medium">
+                                Email <span className="text-muted-foreground font-normal">(opcional)</span>
+                            </label>
                             <input
                                 type="email"
                                 placeholder="para receberes a confirmação"
@@ -347,9 +378,11 @@ export default function BookingForm({ business, services }: Props) {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Notas <span className="text-muted-foreground font-normal">(opcional)</span></label>
+                            <label className="text-sm font-medium">
+                                Notas <span className="text-muted-foreground font-normal">(opcional)</span>
+                            </label>
                             <textarea
-                                placeholder="Ex: carro SUV, precisas de algum detalhe especial..."
+                                placeholder="Ex: carro SUV, algum detalhe especial..."
                                 value={form.notes}
                                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                                 rows={3}
